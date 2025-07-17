@@ -1,6 +1,6 @@
 {
 	"name": "ps-list2",
-	"version": "1.0.0-alpha.1",
+	"version": "1.0.0-alpha.2",
 	"description": "Get running processes",
 	"license": "MIT",
 	"repository": "aztack/ps-list2",
@@ -23,8 +23,7 @@
 		"tsc": "tsc src/index.ts --declaration --emitDeclarationOnly --outDir ./dist --esModuleInterop --module esnext --target es2020"
 	},
 	"files": [
-		"index.js",
-		"index.d.ts",
+		"dist",
 		"vendor/*.exe"
 	],
 	"keywords": [
