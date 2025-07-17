@@ -1,5 +1,5 @@
 import {expectType} from 'tsd';
-import psList, {ProcessDescriptor} from './index.js';
+import psList, {ProcessDescriptor} from './src';
 
 const processes: ProcessDescriptor[] = await psList();
 await psList({all: false});

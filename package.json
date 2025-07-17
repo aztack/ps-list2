@@ -1,22 +1,26 @@
 {
-	"name": "ps-list",
-	"version": "8.1.1",
+	"name": "ps-list2",
+	"version": "1.0.0-alpha.1",
 	"description": "Get running processes",
 	"license": "MIT",
-	"repository": "sindresorhus/ps-list",
-	"funding": "https://github.com/sponsors/sindresorhus",
+	"repository": "aztack/ps-list2",
 	"author": {
-		"name": "Sindre Sorhus",
-		"email": "sindresorhus@gmail.com",
-		"url": "https://sindresorhus.com"
+		"name": "aztack",
+		"email": "aztack@163.com"
 	},
-	"type": "module",
-	"exports": "./index.js",
+	"main": "./dist/index.csj",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		"require": "./dist/index.cjs",
+		"import": "./dist/index.js"
+	},
 	"engines": {
 		"node": "^12.20.0 || ^14.13.1 || >=16.0.0"
 	},
 	"scripts": {
-		"test": "xo && ava && tsd"
+		"build": "node esbuild.js && npm run tsc",
+		"tsc": "tsc src/index.ts --declaration --emitDeclarationOnly --outDir ./dist --esModuleInterop --module esnext --target es2020"
 	},
 	"files": [
 		"index.js",
@@ -33,7 +37,10 @@
 		"tasklist"
 	],
 	"devDependencies": {
+		"@types/node": "^14.18.63",
 		"ava": "^3.15.0",
+		"esbuild": "^0.25.6",
+		"esbuild-plugin-replace": "^1.4.0",
 		"tsd": "^0.18.0",
 		"xo": "^0.46.4"
 	}

@@ -4,14 +4,51 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import childProcess from 'node:child_process';
 
+export interface Options {
+	/**
+	Include other users' processes as well as your own.
+
+	On Windows this has no effect and will always be the users' own processes.
+
+	@default true
+	*/
+	readonly all?: boolean;
+}
+
+export interface ProcessDescriptor {
+	readonly pid: number;
+	readonly name: string;
+	readonly ppid: number;
+
+	/**
+	Not supported on Windows.
+	*/
+	readonly cmd?: string;
+
+	/**
+	Not supported on Windows.
+	*/
+	readonly cpu?: number;
+
+	/**
+	Not supported on Windows.
+	*/
+	readonly memory?: number;
+
+	/**
+	Not supported on Windows.
+	*/
+	readonly uid?: number;
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const TEN_MEGABYTES = 1000 * 1000 * 10;
 const execFile = promisify(childProcess.execFile);
 
-const windows = async () => {
+const windows = async (): Promise<ProcessDescriptor[]> => {
 	// Source: https://github.com/MarkTiedemann/fastlist
-	let binary;
+	let binary: string;
 	switch (process.arch) {
 		case 'x64':
 			binary = 'fastlist-0.3.0-x64.exe';
@@ -23,7 +60,7 @@ const windows = async () => {
 			throw new Error(`Unsupported architecture: ${process.arch}`);
 	}
 
-	const binaryPath = path.join(__dirname, 'vendor', binary);
+	const binaryPath = path.join(__dirname, '..', 'vendor', binary);
 	const {stdout} = await execFile(binaryPath, {
 		maxBuffer: TEN_MEGABYTES,
 		windowsHide: true,
@@ -40,9 +77,9 @@ const windows = async () => {
 		}));
 };
 
-const nonWindowsMultipleCalls = async (options = {}) => {
+const nonWindowsMultipleCalls = async (options: Options = {}): Promise<ProcessDescriptor[]> => {
 	const flags = (options.all === false ? '' : 'a') + 'wwxo';
-	const returnValue = {};
+	const returnValue: Record<string, Record<string, string>> = {};
 
 	await Promise.all(['comm', 'args', 'ppid', 'uid', '%cpu', '%mem'].map(async cmd => {
 		const {stdout} = await execFile('ps', [flags, `pid,${cmd}`], {maxBuffer: TEN_MEGABYTES});
@@ -79,7 +116,7 @@ const ERROR_MESSAGE_PARSING_FAILED = 'ps output parsing failed';
 
 const psOutputRegex = /^[ \t]*(?<pid>\d+)[ \t]+(?<ppid>\d+)[ \t]+(?<uid>[-\d]+)[ \t]+(?<cpu>\d+\.\d+)[ \t]+(?<memory>\d+\.\d+)[ \t]+(?<comm>.*)?/;
 
-const nonWindowsCall = async (options = {}) => {
+const nonWindowsCall = async (options: Options = {}): Promise<ProcessDescriptor[]> => {
 	const flags = options.all === false ? 'wwxo' : 'awwxo';
 
 	const psPromises = [
@@ -94,9 +131,9 @@ const nonWindowsCall = async (options = {}) => {
 	psLines.shift();
 	psArgsLines.shift();
 
-	const processCmds = {};
+	const processCmds: Record<string, string> = {};
 	for (const line of psArgsLines) {
-		const [pid, cmds] = line.trim().split(' ');
+		const [pid, ...cmds] = line.trim().split(' ');
 		processCmds[pid] = cmds.join(' ');
 	}
 
@@ -107,9 +144,9 @@ const nonWindowsCall = async (options = {}) => {
 			throw new Error(ERROR_MESSAGE_PARSING_FAILED);
 		}
 
-		const {pid, ppid, uid, cpu, memory, comm} = match.groups;
+		const {pid, ppid, uid, cpu, memory, comm} = match.groups!;
 
-		const processInfo = {
+		const processInfo: ProcessDescriptor = {
 			pid: Number.parseInt(pid, 10),
 			ppid: Number.parseInt(ppid, 10),
 			uid: Number.parseInt(uid, 10),
@@ -125,7 +162,7 @@ const nonWindowsCall = async (options = {}) => {
 	return processes;
 };
 
-const nonWindows = async (options = {}) => {
+const nonWindows = async (options: Options = {}): Promise<ProcessDescriptor[]> => {
 	try {
 		return await nonWindowsCall(options);
 	} catch { // If the error is not a parsing error, it should manifest itself in multicall version too.
@@ -135,4 +172,19 @@ const nonWindows = async (options = {}) => {
 
 const psList = process.platform === 'win32' ? windows : nonWindows;
 
-export default psList;
+/**
+Get running processes.
+
+@returns A list of running processes.
+
+@example
+```
+import psList from 'ps-list';
+
+console.log(await psList());
+//=> [{pid: 3213, name: 'node', cmd: 'node test.js', ppid: 1, uid: 501, cpu: 0.1, memory: 1.5}, …]
+```
+*/
+export default function (options?: Options): Promise<ProcessDescriptor[]> {
+	return psList(options);
+}

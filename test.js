@@ -1,7 +1,7 @@
 import process from 'node:process';
 import childProcess from 'node:child_process';
 import test from 'ava';
-import psList from './index.js';
+import psList from './dist/index.js';
 
 const isWindows = process.platform === 'win32';
 const nodeBinaryName = isWindows ? 'node.exe' : 'node';
